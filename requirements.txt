@@ -1,0 +1,6 @@
+flask==3.0.0
+opencv-python==4.9.0.80
+pillow==10.2.0
+easyocr==1.7.1
+numpy==1.26.3
+opencc-python-reimplemented==0.1.7

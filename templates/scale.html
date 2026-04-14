@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+
+{% block title %}缩放校正 - 高迪书法字库预处理工具{% endblock %}
+
+{% block extra_css %}
+<style>
+.scale-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+/* 左侧控制面板 */
+.control-panel {
+    width: 280px;
+    background-color: #f5f5f5;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.control-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.control-section:last-child {
+    border-bottom: none;
+}
+
+.control-section h3 {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+/* 单选按钮组 */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.radio-option:hover {
+    background-color: #e8e8e8;
+}
+
+.radio-option input[type="radio"] {
+    display: none;
+}
+
+.radio-circle {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.radio-option input[type="radio"]:checked + .radio-circle {
+    border-color: #4a90a4;
+}
+
+.radio-circle::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background-color: #4a90a4;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.radio-option input[type="radio"]:checked + .radio-circle::after {
+    opacity: 1;
+}
+
+.radio-label {
+    font-size: 13px;
+    color: #333;
+}
+
+/* 滑块控件 */
+.slider-container {
+    margin-top: 10px;
+}
+
+.slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.slider-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4a90a4;
+}
+
+.slider-input {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #ddd;
+    border-radius: 3px;
+    outline: none;
+}
+
+.slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #4a90a4;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.slider-hint {
+    font-size: 11px;
+    color: #999;
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+/* 进度条 */
+.progress-container {
+    margin-top: 15px;
+    display: none;
+}
+
+.progress-container.visible {
+    display: block;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #4a90a4;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* 按钮组 */
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 15px;
+}
+
+.btn-full {
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.btn-full:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-start {
+    background-color: #27ae60;
+    color: white;
+}
+
+.btn-start:hover:not(:disabled) {
+    background-color: #219a52;
+}
+
+.btn-save {
+    background-color: #4a90a4;
+    color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+    background-color: #3d7a8c;
+}
+
+.btn-outline {
+    background-color: white;
+    color: #666;
+    border: 1px solid #ccc;
+}
+
+.btn-outline:hover:not(:disabled) {
+    background-color: #f5f5f5;
+}
+
+.btn-next {
+    background-color: #27ae60;
+    color: white;
+}
+
+.btn-next:hover:not(:disabled) {
+    background-color: #219a52;
+}
+
+/* 右侧预览区域 */
+.preview-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #e8e8e8;
+    overflow: hidden;
+}
+
+.preview-header {
+    padding: 15px 20px;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-title {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+}
+
+.preview-count {
+    font-size: 14px;
+    color: #666;
+}
+
+.preview-count span {
+    color: #4a90a4;
+    font-weight: 600;
+}
+
+.preview-grid-container {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* 预览卡片 */
+.preview-card {
+    position: relative;
+    background-color: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    aspect-ratio: 1;
+}
+
+.preview-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.preview-number {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background-color: rgba(74, 144, 164, 0.9);
+    color: white;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    z-index: 1;
+}
+
+/* 空状态 */
+.empty-state-scale {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+    font-size: 16px;
+}
+
+.empty-state-scale p {
+    margin-bottom: 15px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scale-container">
+    <!-- 左侧控制面板 -->
+    <div class="control-panel">
+        <!-- 对齐方式 -->
+        <div class="control-section">
+            <h3>对齐方式</h3>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="align" value="center" checked>
+                    <span class="radio-circle"></span>
+                    <span class="radio-label">自动居中</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="align" value="top">
+                    <span class="radio-circle"></span>
+                    <span class="radio-label">顶部对齐</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="align" value="baseline">
+                    <span class="radio-circle"></span>
+                    <span class="radio-label">基线对齐</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 补齐方式 -->
+        <div class="control-section">
+            <h3>补齐方式</h3>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="background" value="black" checked>
+                    <span class="radio-circle"></span>
+                    <span class="radio-label">黑色背景</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="background" value="transparent">
+                    <span class="radio-circle"></span>
+                    <span class="radio-label">透明背景</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 字符放大比例 -->
+        <div class="control-section">
+            <h3>字符放大比例</h3>
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span>比例</span>
+                    <span class="slider-value" id="scaleValue">115%</span>
+                </div>
+                <input type="range" class="slider-input" id="scaleSlider" min="100" max="200" value="115">
+                <p class="slider-hint">放大字符以减少黑边，最终输出仍为512x512</p>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">处理中... 0/0</p>
+        </div>
+
+        <!-- 按钮组 -->
+        <div class="button-group">
+            <button id="processBtn" class="btn-full btn-start">开始处理</button>
+            <button id="saveBtn" class="btn-full btn-save" disabled>保存</button>
+            <button id="openDirBtn" class="btn-full btn-outline" disabled>打开目录</button>
+            <button id="backBtn" class="btn-full btn-outline" onclick="location.href='/adjust'">返回</button>
+            <button id="annotateBtn" class="btn-full btn-next" disabled>标注出图</button>
+        </div>
+    </div>
+
+    <!-- 右侧预览区域 -->
+    <div class="preview-area">
+        <div class="preview-header">
+            <span class="preview-title">处理结果</span>
+            <span class="preview-count">共 <span id="totalCount">0</span> 个字符</span>
+        </div>
+        <div class="preview-grid-container">
+            <div id="emptyState" class="empty-state-scale">
+                <p>暂无字符数据</p>
+                <button class="btn btn-primary" onclick="location.href='/adjust'">去切割调整</button>
+            </div>
+            <div id="previewGrid" class="preview-grid" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/common.js') }}?v=3"></script>
+<script src="{{ url_for('static', filename='js/scale.js') }}?v=3"></script>
+{% endblock %}

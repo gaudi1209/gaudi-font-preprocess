@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}高迪书法字库预处理工具{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/高迪字库图标.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 标题栏 -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='images/高迪字库图标.png') }}" class="header-icon" alt="图标">
+        <img src="{{ url_for('static', filename='images/高迪字库标题.png') }}" class="header-title" alt="高迪书法字库">
+        <span class="header-subtitle">预处理工具</span>
+    </div>
+    <div class="main-wrapper">
+        {% block content %}{% endblock %}
+    </div>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

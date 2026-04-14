@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}标注出图 - 高迪书法字库预处理工具{% endblock %}
+
+{% block extra_css %}
+<style>
+.annotate-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #f5f5f5;
+}
+
+/* 工具栏 */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 15px 20px;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    align-items: center;
+}
+
+.toolbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.toolbar-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 莫兰迪色按钮 */
+.btn-import { background-color: #C4A484; color: white; }
+.btn-import:hover:not(:disabled) { background-color: #B8977A; }
+
+.btn-export { background-color: #8BA888; color: white; }
+.btn-export:hover:not(:disabled) { background-color: #7D9979; }
+
+.btn-csv { background-color: #8899AA; color: white; }
+.btn-csv:hover:not(:disabled) { background-color: #7B8FA5; }
+
+.btn-open { background-color: #D4C5A9; color: #5a5a5a; }
+.btn-open:hover:not(:disabled) { background-color: #C9B896; }
+
+.btn-nav { background-color: #9A9A9A; color: white; }
+.btn-nav:hover:not(:disabled) { background-color: #8B8B8B; }
+
+/* 繁简切换 */
+.mode-toggle {
+    display: flex;
+    margin-left: auto;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.mode-btn {
+    padding: 8px 16px;
+    border: none;
+    background-color: transparent;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #666;
+}
+
+.mode-btn.active {
+    background-color: #7B9A9D;
+    color: white;
+}
+
+/* 繁简输入区域 */
+.input-section {
+    display: flex;
+    gap: 15px;
+    padding: 15px 20px;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.input-group textarea {
+    width: 100%;
+    height: 80px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    resize: none;
+    font-family: inherit;
+}
+
+.input-group textarea:focus {
+    outline: none;
+    border-color: #7B9A9D;
+}
+
+.input-group textarea::placeholder {
+    color: #aaa;
+}
+
+/* 操作按钮 */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    padding: 10px 20px;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.action-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btn-annotate {
+    background-color: #7B9A9D;
+    color: white;
+}
+
+.btn-annotate:hover:not(:disabled) {
+    background-color: #6B8E91;
+}
+
+.btn-clear {
+    background-color: #B87E7E;
+    color: white;
+}
+
+.btn-clear:hover {
+    background-color: #A87070;
+}
+
+/* 字符计数 */
+.char-count-info {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 13px;
+    color: #666;
+}
+
+.char-count-info span {
+    color: #7B9A9D;
+    font-weight: 600;
+}
+
+/* 卡片网格 */
+.card-grid-container {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 15px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* 字符卡片 - 长方形（覆盖全局样式） */
+.char-card {
+    background-color: #fff;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: auto !important;
+    cursor: default;
+}
+
+/* 图片区域 - 正方形 */
+.card-image {
+    background-color: #000;
+    width: 100%;
+    padding-bottom: 100%;  /* 1:1 正方形 */
+    position: relative;
+    flex-shrink: 0;
+}
+
+.card-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;  /* 保持原始比例 */
+}
+
+/* 文件名 - 暗显在黑色背景中，左上角 */
+.card-filename {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 10px;
+    z-index: 1;
+}
+
+.card-info {
+    padding: 10px;
+    background-color: #f8f8f8;
+}
+
+.card-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.card-row:last-child {
+    margin-bottom: 0;
+}
+
+.card-row label {
+    width: 45px;
+    font-size: 12px;
+    color: #666;
+    flex-shrink: 0;
+}
+
+.card-row input {
+    width: 60px;
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.card-row input:focus {
+    outline: none;
+    border-color: #7B9A9D;
+}
+
+.card-row .utf-code {
+    width: 75px;
+    font-size: 11px;
+    color: #888;
+    font-family: monospace;
+    background-color: #eee;
+    padding: 4px 6px;
+    border-radius: 3px;
+    text-align: center;
+}
+
+/* 暗显样式 */
+.dimmed {
+    opacity: 0.4;
+}
+
+.dimmed input {
+    background-color: #f0f0f0;
+}
+
+/* 高亮样式 */
+.highlighted input {
+    border-color: #7B9A9D;
+    background-color: #fff;
+}
+
+/* 空状态 */
+.empty-state-annotate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+    font-size: 16px;
+}
+
+.empty-state-annotate p {
+    margin-bottom: 15px;
+}
+
+/* 右键删除提示 */
+.char-card[title]::after {
+    content: none;
+}
+
+.card-deleted {
+    pointer-events: none;
+}
+
+.card-deleted .card-image::after {
+    content: '已删除';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 0 4px rgba(0,0,0,0.8);
+    z-index: 2;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="annotate-container">
+    <!-- 工具栏 -->
+    <div class="toolbar">
+        <button id="importBtn" class="toolbar-btn btn-import" title="导入目录">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            导入目录
+        </button>
+        <button id="exportBtn" class="toolbar-btn btn-export" disabled title="导出白底黑字">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            导出白底黑字
+        </button>
+        <button id="csvBtn" class="toolbar-btn btn-csv" disabled title="导出FontLab CSV">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            导出FontLab CSV
+        </button>
+        <button id="openDirBtn" class="toolbar-btn btn-open" disabled title="打开输出目录">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            打开输出目录
+        </button>
+        <button id="scaleBtn" class="toolbar-btn btn-nav" onclick="location.href='/scale'" title="缩放校正">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <line x1="11" y1="8" x2="11" y2="14"/>
+                <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+            缩放校正
+        </button>
+        <button id="layoutBtn" class="toolbar-btn btn-nav" onclick="location.href='/layout'" title="切割布局">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            切割布局
+        </button>
+
+        <!-- 繁简切换 -->
+        <div class="mode-toggle">
+            <button id="simplifiedMode" class="mode-btn">以简为主</button>
+            <button id="traditionalMode" class="mode-btn active">以繁为主</button>
+        </div>
+    </div>
+
+    <!-- 繁简输入区域 -->
+    <div class="input-section">
+        <div class="input-group">
+            <label>简体字（输入简体自动转繁体）</label>
+            <textarea id="simplifiedInput" placeholder="输入简体文字..."></textarea>
+        </div>
+        <div class="input-group">
+            <label>繁体字（输入繁体自动转简体）</label>
+            <textarea id="traditionalInput" placeholder="输入繁体文字..."></textarea>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button id="annotateBtn" class="action-btn btn-annotate" disabled>开始标注</button>
+        <button id="clearBtn" class="action-btn btn-clear">清空</button>
+        <div class="char-count-info">
+            字符数: <span id="inputCount">0</span> / 卡片数: <span id="cardCount">0</span>
+        </div>
+    </div>
+
+    <!-- 卡片网格 -->
+    <div class="card-grid-container">
+        <div id="emptyState" class="empty-state-annotate">
+            <p>暂无字符数据</p>
+            <button class="btn btn-primary" onclick="document.getElementById('importBtn').click()">导入目录</button>
+        </div>
+        <div id="cardGrid" class="card-grid" style="display: none;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/common.js') }}?v=6"></script>
+<script src="{{ url_for('static', filename='js/annotate.js') }}?v=9"></script>
+{% endblock %}

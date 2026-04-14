@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}切割布局 - 高迪书法字库预处理工具{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- 左侧图片工作区 -->
+    <div class="workspace">
+        <canvas id="imageCanvas"></canvas>
+        <div id="emptyState" class="empty-state">
+            <p>请上传书法图片开始处理</p>
+        </div>
+    </div>
+
+    <!-- 右侧操作面板 -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2>图片预处理</h2>
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button id="uploadBtn" class="btn btn-primary">上传图片</button>
+        </div>
+
+        <div class="panel-section">
+            <h3>操作说明</h3>
+            <div class="instructions">
+                <p><strong>缩放图片：</strong>鼠标滚轮</p>
+                <p><strong>平移图片：</strong>鼠标右键拖动</p>
+                <p><strong>添加横向线：</strong>双击图片</p>
+                <p><strong>添加纵向线：</strong>Shift + 双击</p>
+                <p><strong>移动切割线：</strong>左键靠近线后拖动</p>
+                <p><strong>删除切割线：</strong>Alt + 左键点击</p>
+                <p><span style="color: #e74c3c;">红色线</span> = 纵向切割</p>
+                <p><span style="color: #3498db;">蓝色线</span> = 横向切割</p>
+                <p><span style="color: #2ecc71;">绿色虚线</span> = 文本框</p>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>图片信息</h3>
+            <div id="imageInfo" class="info-box">
+                <p>宽度: <span id="imgWidth">-</span> px</p>
+                <p>高度: <span id="imgHeight">-</span> px</p>
+                <p>哈希: <span id="imgHash">-</span></p>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>切割线统计</h3>
+            <div id="cutStats" class="info-box">
+                <p>纵向切割线: <span id="vLineCount">0</span> 条</p>
+                <p>横向切割线: <span id="hLineCount">0</span> 条</p>
+                <p>预计切割: <span id="totalPieces">0</span> 个</p>
+            </div>
+        </div>
+
+        <div class="panel-actions">
+            <button id="saveBtn" class="btn btn-secondary" disabled>存储切割线</button>
+            <button id="applyBtn" class="btn btn-success" disabled>应用切割</button>
+        </div>
+
+        <!-- 页面导航 -->
+        <div class="nav-buttons">
+            <button class="nav-btn active">切割布局</button>
+            <button class="nav-btn" onclick="location.href='/adjust'">切割调整</button>
+            <button class="nav-btn" onclick="location.href='/scale'">缩放校正</button>
+            <button class="nav-btn" onclick="location.href='/annotate'">标注出图</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+<script src="{{ url_for('static', filename='js/layout.js') }}?v=8"></script>
+{% endblock %}
