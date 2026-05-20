@@ -6,7 +6,7 @@ const state = {
     characters: [],
     outputDir: null,
     exportedDir: null,
-    mode: 'traditional',  // 'traditional' 或 'simplified'
+    mode: 'mixed',  // 'mixed'、'traditional' 或 'simplified'
     inputText: ''
 };
 
@@ -16,10 +16,15 @@ const elements = {
     cardGrid: document.getElementById('cardGrid'),
     inputCount: document.getElementById('inputCount'),
     cardCount: document.getElementById('cardCount'),
+    mixedInput: document.getElementById('mixedInput'),
     simplifiedInput: document.getElementById('simplifiedInput'),
     traditionalInput: document.getElementById('traditionalInput'),
+    mixedMode: document.getElementById('mixedMode'),
     simplifiedMode: document.getElementById('simplifiedMode'),
     traditionalMode: document.getElementById('traditionalMode'),
+    mixedInputGroup: document.getElementById('mixedInputGroup'),
+    simplifiedInputGroup: document.getElementById('simplifiedInputGroup'),
+    traditionalInputGroup: document.getElementById('traditionalInputGroup'),
     importBtn: document.getElementById('importBtn'),
     exportBtn: document.getElementById('exportBtn'),
     csvBtn: document.getElementById('csvBtn'),
@@ -48,8 +53,22 @@ function setupEventListeners() {
     elements.clearBtn.addEventListener('click', clearInputs);
 
     // 繁简切换
+    elements.mixedMode.addEventListener('click', () => setMode('mixed'));
     elements.simplifiedMode.addEventListener('click', () => setMode('simplified'));
     elements.traditionalMode.addEventListener('click', () => setMode('traditional'));
+
+    // 繁简混合输入（只去标点，不转换）
+    let mixedDebounceTimer;
+    elements.mixedInput.addEventListener('input', (e) => {
+        clearTimeout(mixedDebounceTimer);
+        mixedDebounceTimer = setTimeout(() => {
+            const cleaned = removePunctuation(e.target.value);
+            if (cleaned !== e.target.value) {
+                e.target.value = cleaned;
+            }
+            elements.inputCount.textContent = Array.from(cleaned).length;
+        }, 300);
+    });
 
     // 繁简输入联动（带去标点和防抖）
     let simpDebounceTimer;
@@ -137,19 +156,31 @@ async function callConvertApi(url, text) {
 function removePunctuation(text) {
     // CJK基本区 \u4e00-\u9fff，扩展A \u3400-\u4dbf
     // 扩展B-F需要用u标志匹配补充平面（代理对范围）
-    return text.replace(/[^\u3400-\u9fffa-zA-Z0-9\u{20000}-\u{2FA1F}]/gu, '');
+    return text.replace(/[^\u3400-\u9fff\uF900-\uFAFFa-zA-Z0-9\u{20000}-\u{2FA1F}]/gu, '');
 }
 
 // 设置模式
 function setMode(mode) {
     state.mode = mode;
 
-    if (mode === 'simplified') {
-        elements.simplifiedMode.classList.add('active');
-        elements.traditionalMode.classList.remove('active');
+    // 切换按钮激活状态
+    elements.mixedMode.classList.toggle('active', mode === 'mixed');
+    elements.simplifiedMode.classList.toggle('active', mode === 'simplified');
+    elements.traditionalMode.classList.toggle('active', mode === 'traditional');
+
+    // 切换输入区域显示
+    if (mode === 'mixed') {
+        elements.mixedInputGroup.style.display = '';
+        elements.simplifiedInputGroup.style.display = 'none';
+        elements.traditionalInputGroup.style.display = 'none';
+        const cleaned = removePunctuation(elements.mixedInput.value);
+        elements.inputCount.textContent = Array.from(cleaned).length;
     } else {
-        elements.simplifiedMode.classList.remove('active');
-        elements.traditionalMode.classList.add('active');
+        elements.mixedInputGroup.style.display = 'none';
+        elements.simplifiedInputGroup.style.display = '';
+        elements.traditionalInputGroup.style.display = '';
+        const text = mode === 'simplified' ? elements.simplifiedInput.value : elements.traditionalInput.value;
+        elements.inputCount.textContent = Array.from(removePunctuation(text)).length;
     }
 
     // 更新卡片显示
@@ -168,11 +199,17 @@ function updateCardsDisplay() {
             simplifiedRow.classList.add('highlighted');
             traditionalRow.classList.add('dimmed');
             traditionalRow.classList.remove('highlighted');
-        } else {
+        } else if (state.mode === 'traditional') {
             traditionalRow.classList.remove('dimmed');
             traditionalRow.classList.add('highlighted');
             simplifiedRow.classList.add('dimmed');
             simplifiedRow.classList.remove('highlighted');
+        } else {
+            // mixed mode - both highlighted
+            simplifiedRow.classList.remove('dimmed');
+            simplifiedRow.classList.add('highlighted');
+            traditionalRow.classList.remove('dimmed');
+            traditionalRow.classList.add('highlighted');
         }
     });
 }
@@ -406,9 +443,14 @@ async function convertSingleToSimplified(char, index) {
 
 // 开始标注
 function startAnnotate() {
-    let text = state.mode === 'simplified'
-        ? elements.simplifiedInput.value
-        : elements.traditionalInput.value;
+    let text;
+    if (state.mode === 'mixed') {
+        text = elements.mixedInput.value;
+    } else if (state.mode === 'simplified') {
+        text = elements.simplifiedInput.value;
+    } else {
+        text = elements.traditionalInput.value;
+    }
 
     if (!text) {
         showToast('请先输入文字');
@@ -432,7 +474,19 @@ function startAnnotate() {
         if (charIdx < chars.length) {
             const char = chars[charIdx];
 
-            if (state.mode === 'simplified') {
+            if (state.mode === 'mixed') {
+                // 繁简混合：直接标注，不做转换
+                const simpInput = card.querySelector('.simplified-input');
+                const simpUtf = card.querySelector('.simplified-utf');
+                const tradInput = card.querySelector('.traditional-input');
+                const tradUtf = card.querySelector('.traditional-utf');
+                simpInput.value = char;
+                simpUtf.textContent = getUtfCode(char);
+                tradInput.value = char;
+                tradUtf.textContent = getUtfCode(char);
+                state.characters[index].simplified = char;
+                state.characters[index].traditional = char;
+            } else if (state.mode === 'simplified') {
                 const simpInput = card.querySelector('.simplified-input');
                 const simpUtf = card.querySelector('.simplified-utf');
                 simpInput.value = char;
@@ -456,6 +510,7 @@ function startAnnotate() {
 
 // 清空输入
 function clearInputs() {
+    elements.mixedInput.value = '';
     elements.simplifiedInput.value = '';
     elements.traditionalInput.value = '';
     elements.inputCount.textContent = 0;
@@ -547,7 +602,9 @@ async function exportImages() {
         if (card) {
             const primaryChar = state.mode === 'simplified'
                 ? card.querySelector('.simplified-input').value
-                : card.querySelector('.traditional-input').value;
+                : state.mode === 'traditional'
+                    ? card.querySelector('.traditional-input').value
+                    : card.querySelector('.simplified-input').value || card.querySelector('.traditional-input').value;
 
             if (primaryChar) {
                 annotations.push({
@@ -631,7 +688,7 @@ async function exportCSV() {
                     filename: char.filename || char.processed_filename,
                     simplified: simpChar,
                     traditional: tradChar,
-                    primary: state.mode === 'simplified' ? simpChar : tradChar
+                    primary: state.mode === 'simplified' ? simpChar : state.mode === 'traditional' ? tradChar : (simpChar || tradChar)
                 });
             }
         }

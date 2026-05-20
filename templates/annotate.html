@@ -385,18 +385,23 @@
 
         <!-- 繁简切换 -->
         <div class="mode-toggle">
+            <button id="mixedMode" class="mode-btn active">繁简混合</button>
             <button id="simplifiedMode" class="mode-btn">以简为主</button>
-            <button id="traditionalMode" class="mode-btn active">以繁为主</button>
+            <button id="traditionalMode" class="mode-btn">以繁为主</button>
         </div>
     </div>
 
     <!-- 繁简输入区域 -->
     <div class="input-section">
-        <div class="input-group">
+        <div class="input-group" id="mixedInputGroup">
+            <label>繁简混合（输入的文字不做转换，直接标注）</label>
+            <textarea id="mixedInput" placeholder="输入繁简混合文字..."></textarea>
+        </div>
+        <div class="input-group" id="simplifiedInputGroup" style="display:none;">
             <label>简体字（输入简体自动转繁体）</label>
             <textarea id="simplifiedInput" placeholder="输入简体文字..."></textarea>
         </div>
-        <div class="input-group">
+        <div class="input-group" id="traditionalInputGroup" style="display:none;">
             <label>繁体字（输入繁体自动转简体）</label>
             <textarea id="traditionalInput" placeholder="输入繁体文字..."></textarea>
         </div>
@@ -424,5 +429,5 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/common.js') }}?v=6"></script>
-<script src="{{ url_for('static', filename='js/annotate.js') }}?v=9"></script>
+<script src="{{ url_for('static', filename='js/annotate.js') }}?v=11"></script>
 {% endblock %}
