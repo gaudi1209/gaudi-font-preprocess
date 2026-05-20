@@ -1,18 +1,28 @@
 """高迪书法字库预处理工具 - Flask主应用"""
 import os
+import sys
 import json
 import cv2
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from werkzeug.utils import secure_filename
 
 from config import *
+
+# PyInstaller 打包后的资源目录
+if getattr(sys, 'frozen', False):
+    RESOURCE_DIR = sys._MEIPASS
+else:
+    RESOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 from utils.image_processor import load_image, to_binary, resize_to_height, compute_hash, save_image, get_image_info
 from utils.ocr_handler import detect_text_boxes
 from utils.cut_analyzer import analyze_cut_lines
 from utils.storage import save_session, load_session
 from utils.empty_detector import detect_empty_slice
 
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder=os.path.join(RESOURCE_DIR, 'templates'),
+            static_folder=os.path.join(RESOURCE_DIR, 'static'))
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 最大50MB
 
@@ -886,4 +896,22 @@ def import_characters():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=7500)
+    import webbrowser
+    import threading
+
+    port = 7500
+    url = f'http://localhost:{port}'
+
+    def open_browser():
+        import time
+        time.sleep(1.5)
+        webbrowser.open(url)
+
+    if getattr(sys, 'frozen', False):
+        print(f'高迪书法字库预处理工具已启动')
+        print(f'访问地址: {url}')
+        print(f'按 Ctrl+C 停止服务')
+        threading.Thread(target=open_browser, daemon=True).start()
+        app.run(host='0.0.0.0', port=port, debug=False)
+    else:
+        app.run(debug=True, host='0.0.0.0', port=port)

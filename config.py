@@ -1,9 +1,16 @@
 """配置文件"""
 import os
+import sys
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# PyInstaller 打包后资源文件在 sys._MEIPASS 目录
+if getattr(sys, 'frozen', False):
+    RESOURCE_DIR = sys._MEIPASS
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    RESOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
+    BASE_DIR = RESOURCE_DIR
 
-# 路径配置
+# 路径配置（运行时数据在 BASE_DIR，资源文件在 RESOURCE_DIR）
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 OUTPUT_FOLDER = os.path.join(BASE_DIR, 'output')
 INPUT_FOLDER = os.path.join(BASE_DIR, 'input')
